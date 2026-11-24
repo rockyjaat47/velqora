@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import {
   ArrowDown, ArrowRight, ArrowUpRight, ChartNoAxesCombined, Menu,
-  Package, PackageCheck, ShieldCheck, Truck, Warehouse, X,
+  Package, PackageCheck, ShieldCheck, ShoppingBag, Truck, Warehouse, X,
 } from 'lucide-react'
 import '@fontsource-variable/manrope'
 import '@fontsource-variable/playfair-display'
@@ -11,6 +11,8 @@ import HeroArtwork from './HeroArtwork'
 import CatalogRail from './CatalogRail'
 import OrderDialog from './OrderDialog'
 import { policies } from './catalog'
+import { bagQuantity, loadBag, packSize, saveBag, updateBag } from './SampleBag'
+import { flyGarment, openGarmentFrom } from './garmentMotion'
 import './styles.css'
 
 const links = [
@@ -43,7 +45,7 @@ function Brand() {
   </a>
 }
 
-function Header({ onStart }) {
+function Header({ onStart, onBag, bagButton, count }) {
   const [menuOpen, setMenuOpen] = useState(false)
   return <header className="site-header">
     <div className="shell header-inner">
@@ -51,10 +53,19 @@ function Header({ onStart }) {
       <nav className={menuOpen ? 'site-nav open' : 'site-nav'} id="primary-nav" aria-label="Primary navigation">
         {links.map(([label, href]) => <a key={href} href={href} onClick={() => setMenuOpen(false)}>{label}</a>)}
       </nav>
-      <button className="button header-cta" type="button" onClick={() => {
-        setMenuOpen(false)
-        onStart()
-      }}>Get started <ArrowUpRight size={17} /></button>
+      <div className="header-actions">
+        <button className="button header-cta" type="button" onClick={() => {
+          setMenuOpen(false)
+          onStart()
+        }}><span className="header-cta-label">Get started</span><ArrowUpRight size={17} /></button>
+        <button className="icon-button header-bag" ref={bagButton} type="button" onClick={() => {
+          setMenuOpen(false)
+          onBag()
+        }} aria-label={`Open sample bag, ${count} ${count === 1 ? 'piece' : 'pieces'}`} aria-haspopup="dialog">
+          <ShoppingBag size={20} strokeWidth={1.65} />
+          {count > 0 && <span className="header-bag-count" aria-hidden="true">{count}</span>}
+        </button>
+      </div>
       <button className="icon-button menu-button" type="button" aria-expanded={menuOpen} aria-controls="primary-nav"
         aria-label={menuOpen ? 'Close menu' : 'Open menu'} onClick={() => setMenuOpen(!menuOpen)}>
         {menuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -171,28 +182,60 @@ function PolicyHub() {
 
 function App() {
   const [modal, setModal] = useState(null)
+  const [bag, setBag] = useState(loadBag)
+  const [bagNotice, setBagNotice] = useState('')
   const dialog = useRef(null)
+  const bagButton = useRef(null)
+  const count = bagQuantity(bag)
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    document.getElementById(location.hash.slice(1))?.scrollIntoView({ behavior: 'instant' })
+  }, [])
+
+  useLayoutEffect(() => {
     const element = dialog.current
     if (modal && !element.open) element.showModal()
     if (modal) {
       element.scrollTop = 0
       element.querySelector('.dialog-close')?.focus()
+      if (modal.origin) openGarmentFrom(element.querySelector('.detail-spin'), modal.origin)
     }
     if (!modal && element.open) element.close()
   }, [modal])
 
+  useEffect(() => saveBag(bag), [bag])
+
   const openOrder = (type, initial, defaultSales) => setModal({ type, initial, defaultSales })
-  const start = () => openOrder('sample')
+  const start = () => openOrder('sample', bag.length ? { sampleItems: bag } : undefined)
+
+  function changeBag(sku, size, change) {
+    setBag((items) => updateBag(items, sku, size, change))
+  }
+
+  function closeModal() {
+    if (modal?.type === 'product' && dialog.current.open && modal.origin?.isConnected) {
+      flyGarment(dialog.current.querySelector('.detail-photo[aria-hidden="false"]'), modal.origin)
+    }
+    setModal(null)
+  }
+
+  function addToBag(product, size) {
+    if (count >= packSize) return
+    const photo = dialog.current.querySelector('.detail-photo[aria-hidden="false"]')
+    flyGarment(photo, bagButton.current, { arc: true })
+    changeBag(product.sku, size, 1)
+    setBagNotice(`${product.name}, size ${size}, added to your sample bag. ${count + 1} selected.`)
+    setModal(null)
+  }
 
   return <>
     <a className="skip-link" href="#main">Skip to content</a>
     <div id="top" />
-    <Header onStart={start} />
+    <Header onStart={start} onBag={() => openOrder('bag')} bagButton={bagButton} count={count} />
+    <div className="sr-only" role="status">{bagNotice}</div>
     <main id="main">
       <Hero onStart={start} />
-      <CatalogRail onProduct={(product) => setModal({ type: 'product', product })} />
+      <CatalogRail onProduct={(product, origin) => setModal({ type: 'product', product, origin })} />
       <Fulfillment />
       <Scaling onReorder={(sales) => openOrder('reorder', undefined, sales)} />
       <PolicyHub />
@@ -213,7 +256,8 @@ function App() {
         <small>© {new Date().getFullYear()} Velqora</small>
       </div>
     </footer>
-    <OrderDialog dialogRef={dialog} modal={modal} close={() => setModal(null)} openOrder={openOrder} />
+    <OrderDialog dialogRef={dialog} modal={modal} close={closeModal} openOrder={openOrder}
+      bag={bag} onChangeBag={changeBag} onAddToBag={addToBag} />
   </>
 }
 

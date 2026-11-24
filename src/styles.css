@@ -26,7 +26,7 @@ img { display: block; max-width: 100%; }
 p, h1, h2, h3 { margin: 0; }
 em { font-weight: inherit; }
 fieldset { min-inline-size: 0; }
-section[id], details[id] { scroll-margin-top: 25px; }
+section[id], details[id] { scroll-margin-top: 88px; }
 .shell { width: var(--shell); margin-inline: auto; }
 .skip-link, .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .skip-link:focus { z-index: 20; width: auto; height: auto; clip-path: none; padding: 10px 16px; background: var(--cream); top: 10px; left: 10px; }
@@ -42,7 +42,7 @@ section[id], details[id] { scroll-margin-top: 25px; }
 h2 { font: 500 clamp(40px, 5vw, 69px)/1.09 var(--serif); letter-spacing: -.045em; }
 h2 em { color: #855c31; }
 
-.site-header { background: #171613; color: var(--cream); border-bottom: 1px solid #faf0d51e; position: relative; z-index: 2; }
+.site-header { background: #171613; color: var(--cream); border-bottom: 1px solid #faf0d51e; position: sticky; top: 0; z-index: 2; }
 .header-inner { min-height: 73px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 26px; }
 .brand { display: inline-flex; align-items: center; gap: 10px; font-size: 20px; letter-spacing: .2em; font-weight: 850; width: max-content; line-height: 1; }
 .brand svg { color: var(--gold); width: 29px; height: 29px; }

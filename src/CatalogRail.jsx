@@ -1,16 +1,16 @@
-import { useRef, useState } from 'react'
-import { ArrowLeft, ArrowRight, ArrowUpRight, MoveHorizontal } from 'lucide-react'
+import { useMemo, useRef, useState } from 'react'
+import { ArrowLeft, ArrowRight, ArrowUpRight, LayoutGrid, MoveHorizontal, Shirt } from 'lucide-react'
 import { image, products } from './catalog'
+import HangingRail from './HangingRail'
+import './hanging-rail.css'
 
 const filters = ['All styles', ...new Set(products.map((product) => product.category))]
 
-export default function CatalogRail({ onProduct }) {
-  const [category, setCategory] = useState(filters[0])
+function CardRail({ list, onProduct }) {
   const [position, setPosition] = useState(0)
   const rail = useRef(null)
   const drag = useRef(null)
   const blockClick = useRef(false)
-  const list = category === filters[0] ? products : products.filter((product) => product.category === category)
 
   function updatePosition() {
     const { scrollWidth, clientWidth, scrollLeft } = rail.current
@@ -66,23 +66,8 @@ export default function CatalogRail({ onProduct }) {
     }
   }
 
-  return <section className="catalog-section" id="catalog" aria-labelledby="catalog-title">
-    <div className="shell">
-      <div className="catalog-heading">
-        <div>
-          <p className="eyebrow"><span /> THE VELQORA CATALOG</p>
-          <h2 id="catalog-title">The Everyday <em>Rail.</em></h2>
-        </div>
-        <p>Explore apparel for your marketplace catalog, from tees and polos to easy layers.</p>
-      </div>
-      <div className="catalog-toolbar">
-        <div className="filters" aria-label="Filter by category">
-          {filters.map((filter) => <button type="button" key={filter} aria-pressed={category === filter} onClick={() => {
-            setCategory(filter)
-            rail.current.scrollLeft = 0
-            setPosition(0)
-          }}>{filter}</button>)}
-        </div>
+  return <>
+      <div className="card-rail-controls">
         <div className="rail-controls">
           <button type="button" className="icon-button" onClick={() => step(-1)} aria-label="Previous styles"><ArrowLeft size={18} /></button>
           <button type="button" className="icon-button" onClick={() => step(1)} aria-label="Next styles"><ArrowRight size={18} /></button>
@@ -118,8 +103,35 @@ export default function CatalogRail({ onProduct }) {
       <div className="rail-footer">
         <span><MoveHorizontal size={16} /> Swipe or drag to browse</span>
         <div className="rail-progress" aria-hidden="true"><i style={{ left: `${position * 62}%` }} /></div>
-        <span>Illustrative styles · stock on request</span>
       </div>
+  </>
+}
+
+export default function CatalogRail({ onProduct }) {
+  const [category, setCategory] = useState(filters[0])
+  const [view, setView] = useState('hanging')
+  const list = useMemo(() => category === filters[0] ? products : products.filter((product) => product.category === category), [category])
+
+  return <section className="catalog-section" id="catalog" aria-labelledby="catalog-title">
+    <div className="shell">
+      <div className="catalog-heading">
+        <div>
+          <p className="eyebrow"><span /> THE VELQORA CATALOG</p>
+          <h2 id="catalog-title">The Everyday <em>Rail.</em></h2>
+        </div>
+        <p>Explore apparel for your marketplace catalog, from tees and polos to easy layers.</p>
+      </div>
+      <div className="catalog-toolbar">
+        <div className="filters" role="group" aria-label="Filter by category">
+          {filters.map((filter) => <button type="button" key={filter} aria-pressed={category === filter} onClick={() => setCategory(filter)}>{filter}</button>)}
+        </div>
+        <div className="catalog-views" role="group" aria-label="Catalog view">
+          <button type="button" onClick={() => setView('hanging')} aria-pressed={view === 'hanging'}><Shirt size={15} /> Rail</button>
+          <button type="button" onClick={() => setView('cards')} aria-pressed={view === 'cards'}><LayoutGrid size={15} /> Grid</button>
+        </div>
+      </div>
+      {view === 'hanging' ? <HangingRail key={category} list={list} onProduct={onProduct} /> : <CardRail key={category} list={list} onProduct={onProduct} />}
+      <p className="catalog-availability">Illustrative styles · stock on request</p>
     </div>
   </section>
 }
